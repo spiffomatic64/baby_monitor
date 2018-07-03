@@ -2,7 +2,7 @@
 netv and raspberrypi based baby monitor
 
 ## Demo
-[![Nerdy Baby monitor](http://i3.ytimg.com/vi/h77OJGggoXA/hqdefault.jpg)](https://www.youtube.com/watch?v=h77OJGggoXA)
+[![Nerdy Baby monitor](https://i.imgur.com/wdt2mi6.png)](https://www.youtube.com/watch?v=h77OJGggoXA)
 
 ### Current features:
 - Hdmi overlay via mjpg
