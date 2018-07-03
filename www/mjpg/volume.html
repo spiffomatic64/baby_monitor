@@ -1,0 +1,36 @@
+<html>
+<head>
+    <style>
+    #volume{
+        position: absolute;
+        top: 0px;
+        right: 0px;
+        background-color: red;
+        height: 180; 
+        width: 10;
+    }
+    </style>
+    <script type='text/javascript' src='http://code.jquery.com/jquery-3.3.1.min.js'></script>
+</head>
+<body>
+<script>
+    function getvol()
+    {
+        $.get( "vol.php", function( data ) {
+          vol = data+"px";
+          $("#volume").css("height",vol);
+          console.log(vol);
+          setTimeout(getvol,1000);
+        });
+    }
+    
+getvol();
+</script>
+
+<div id="video" align="right">
+    <div id="volume">
+    </div>
+    <iframe id="myimg1" width="320" height="180" frameBorder="0" scrolling="no" ></iframe>
+</div>
+</body>
+</html>
