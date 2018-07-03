@@ -1,0 +1,357 @@
+<html>
+<head>
+    <style>
+    #fps {
+       position: absolute;
+       top: 10px;
+       right: 15px; 
+    }
+    #checkerboard {
+       position: absolute;
+       top: 8px;
+       right: 8px; 
+       background-image: url("1x2.png");
+       width : 320px; 
+       height : 180px;
+    }
+    #stats {
+       position: absolute;
+       top: 10px;
+       left: 10px; 
+    }
+    #volume{
+        position: absolute;
+        top: 8px;
+        right: 328px;
+        background-color: red;
+        height: 0; 
+        width: 10;
+    }
+    
+    .motion-active
+    {
+        border-bottom: 2px #F00 solid;
+    }
+    .sound-active {
+       border-left: 2px #F00 solid;
+    }
+    </style>
+    <script type='text/javascript' src='http://code.jquery.com/jquery-3.3.1.min.js'></script>
+    
+    <script language="JavaScript">
+        last = new Date();
+        last_fps = last;
+        last_image = last;
+        page_start = last;
+        var counter = 0
+        var total_images = 0;
+        var error_wait = 5;
+        var msecPerMinute = 1000 * 60;  
+        var msecPerHour = msecPerMinute * 60;  
+        var msecPerDay = msecPerHour * 24;  
+        var debug = false;
+        var video = false;
+        var stats = false;
+        var motion_activated = false;
+        var sound_activated = false;
+        var motion_or_sound = false;
+        var checkerboard = false;
+        var last_sound = new Date(last.getTime() - (30 * 1000));
+        
+        function getvol()
+        {
+            $.get( "vol.php", function( data ) {
+              vol = parseInt(data)-130;
+              if (vol < 0) vol = 0;
+              if (vol > 180) vol = 180;
+              $("#volume").css("height",vol+"px");
+              if (vol>20) last_sound = new Date();
+              console.log("Volume: "+vol);
+              setTimeout(getvol,400);
+            });
+        }
+
+        function update_date(input)
+        {
+            elapsed = input.getTime() - last.getTime();
+            last = input;
+            return elapsed;
+        }
+        
+        function fCheckAlive()
+        {
+            return true;
+        }
+        function update_jpg1()
+        {
+            $("#myimg1").one("load error", function(event) {
+                if (event.type == "load")
+                {
+                    $("#myimg1").show();
+                    $("#myimg2").hide();
+                    counter += 1;
+                    total_images += 1;
+                    last_image = new Date();
+                    update_jpg2();
+                }
+                if (event.type == "error")
+                {
+                    d = new Date();
+                    console.log("Error loging image waiting " + error_wait + " seconds");
+                    setTimeout(update_jpg2,error_wait * 1000);
+                }
+            }).attr("src", getNextURL());
+        }
+        
+        function update_jpg2()
+        {
+            $("#myimg2").one("load error", function(event) {
+                if (event.type == "load")
+                {
+                    $("#myimg2").show();
+                    $("#myimg1").hide();
+                    counter += 1;
+                    total_images += 1;
+                    last_image = new Date();
+                    update_jpg1();
+                }
+                if (event.type == "error")
+                {
+                    d = new Date();
+                    console.log("Error loging image waiting " + error_wait + " seconds");
+                    setTimeout(update_jpg1,error_wait * 1000);
+                }
+            }).attr("src", getNextURL());
+        }
+        
+        function getNextURL()
+        {
+            d = new Date();
+            url = "image.html?" + d.getTime();
+            return url;
+        }
+        
+        function pad(num, size) {
+            var s = num+"";
+            while (s.length < size) s = "0" + s;
+            return s;
+        }
+        
+        function fps()
+        {
+            get_config();
+            d = new Date();
+            elapsed = d.getTime() - last_fps.getTime();
+            image_elapsed = d.getTime() - last_image.getTime();
+            
+            page_alive = d.getTime() - page_start.getTime();
+            // Get the difference in milliseconds.  
+            var interval = page_alive;  
+
+            // Calculate how many days the interval contains. Subtract that  
+            // many days from the interval to determine the remainder.  
+            var days = Math.floor(interval / msecPerDay );  
+            interval = interval - (days * msecPerDay );  
+
+            // Calculate the hours, minutes, and seconds.  
+            var hours = Math.floor(interval / msecPerHour );  
+            interval = interval - (hours * msecPerHour );  
+
+            var minutes = Math.floor(interval / msecPerMinute );  
+            interval = interval - (minutes * msecPerMinute );  
+            var seconds = Math.floor(interval / 1000 );  
+            
+            string_elapsed = pad(hours,2) + ":"+ pad(minutes,2) + ":" + pad(seconds,2) + " since page load";
+            
+            html_data = total_images + " images<br>";
+            html_data += counter + " Frames per Sec <br>";
+            html_data += string_elapsed + "<br>";
+            html_data += image_elapsed + " ms since last image update<br>";
+            html_data += elapsed + " 1000 ms timer";
+            
+            if (elapsed > 4000)
+            {
+                location.reload();
+            }
+            
+            $("#fps").html(html_data);
+            last_fps = d;
+            console.log( d.getTime() + " - Fps: " + counter + " Elapsed: " + elapsed + " " + string_elapsed);
+            counter = 0;
+            update_date(d);
+        }
+        
+        function get_config()
+        {
+            //console.log("getting config");
+            motion_or_sound = false;
+            $.getJSON( "json.php", function( data ) {
+              video = false;
+              $.each( data, function( index, config ) {
+                //console.log(config["name"] + " = " + config["value"]);
+                if (config["name"] == "debug")
+                {
+                    if (config["value"] == "true")
+                    {
+                        if (debug == false) $("#fps").show();
+                            debug = true;
+                    } else {
+                    if (debug == true) $("#fps").hide();
+                        debug = false;
+                    }
+                }
+                
+                if (config["name"] == "video")
+                {
+                    if (config["value"] == "true")
+                    {
+                        //if (video == false) $("#video").show();
+                        //motion_or_sound = true;
+                        video = true;
+                    } else {
+                        //if (video == true) $("#video").hide();
+                        //video = false;
+                    }
+                }
+                
+                if (config["name"] == "motionactivated")
+                {
+                    if (config["value"] == "true")
+                    {
+                        motion_activated = true;
+                    } else {
+                        motion_activated = false;
+                    }
+                }
+                
+                if (config["name"] == "soundactivated")
+                {
+                    if (config["value"] == "true")
+                    {
+                        d = new Date();
+                        sound_activated = true;
+                        if(last_sound.getTime() > (d.getTime()-30000))
+                        {
+                            console.log("Sound active");
+                            //if (video == false) $("#video").show();
+                            //video = true;
+                            video = true;
+                            $('#myimg1').addClass('sound-active');
+                            $('#myimg2').addClass('sound-active');
+                        } else
+                        {
+                            //if (video == true) $("#video").hide();
+                            $('#myimg1').removeClass('sound-active');
+                            $('#myimg2').removeClass('sound-active');
+                            //video = false;
+                        }
+                    } else {
+                        sound_activated = false;
+                    }
+                }
+                
+                if (config["name"] == "lastmotion")
+                {
+                    if (motion_activated == true)
+                    {
+                        //d = new Date();
+                        last_motion = parseInt(config["value"]);
+                        //var before_last = (d.getTime()-30000);
+                        if (last_motion != "0")
+                        {
+                            console.log("Motion active");
+                            video = true;
+                            //if (video == false) $("#video").show();
+                            $('#myimg1').addClass('motion-active');
+                            $('#myimg2').addClass('motion-active');
+                            //video = true;
+                        } else {
+                            //if (video == true) $("#video").hide();
+                            $('#myimg1').removeClass('motion-active');
+                            $('#myimg2').removeClass('motion-active');
+                            //video = false;
+                        }
+                    }
+                }
+                
+
+                
+                if (config["name"] == "checkerboard")
+                {
+                    if (config["value"] == "true")
+                    {
+                        if (checkerboard == false) $("#checkerboard").show();
+                        checkerboard = true;
+                    } else {
+                        if (checkerboard == true) $("#checkerboard").hide();
+                        checkerboard = false;
+                    }
+                }
+                
+                /*if (config["name"] == "stats")
+                {
+                    if (config["value"] == "true")
+                    {
+                        if (stats == false) 
+                        { 
+                            $("#graphs").attr("src", "../environment")
+                            stats = true;
+                        }
+                    } else 
+                    {
+                        if (stats == true)
+                        {
+                            $("#graphs").attr("src", "")
+                            stats = false;
+                        }
+                    }
+                }*/
+                
+                if (config["name"] == "refresh")
+                {
+                    if (config["value"] == "true")
+                    {
+                        location.reload();
+                    }
+                }
+              });
+              
+              if (video == true)
+              {
+                  console.log("video is true");
+                  $("#video").show();
+              }else{
+                  $("#video").hide();
+              }
+            
+            });
+        }
+        
+    </script>
+</head>
+
+<body style="background-color: #F000F0;">
+
+<script>
+$(document).ready(function() 
+{
+    get_config();
+    setInterval(fps,1000);
+    update_jpg1();
+    $("#myimg2").hide();
+    $("#graphs").width($(window).width() - 320 - 25);
+    getvol();
+});
+</script>
+<div id="stats">
+    <!-- <iframe id="graphs" width="960" height="170" frameBorder="0" scrolling="no" src="../environment"></iframe> -->
+</div>
+<div id="video" style="display: none;" align="right">
+    <div id="volume"></div>
+    <iframe id="myimg1" width="320" height="180" frameBorder="0" scrolling="no" ></iframe>
+    <iframe id="myimg2" width="320" height="180" frameBorder="0" scrolling="no" ></iframe>
+    <div id="fps" style="display: none;"></div>
+    <div id="checkerboard" style="display: none;"></div>
+</div>
+</body>
+</html>
