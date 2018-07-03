@@ -9,3 +9,11 @@ netv and raspberrypi based baby monitor
 - timelapse nightly
 - Environment monitoring (temp/hum/gas sensors)
 - Graphing data using plotly
+
+### Requirements:
+hardware: netv, raspberrypi, webcam, microphone, arduino, bunch-o-sensors (im using the mq2,5,7, and dht22)
+software: mysql, python, apache, php, motion
+python libraries: MySQLdb, serial, pyaudio
+
+
+Im leaving out a ton, if you want to try this, let me know and Ill add whatever is missing.
